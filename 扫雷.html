@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>扫雷</title>
+    <script>
+        var row=10;
+        var col=10;
+        var grid=init_grid();//初始化矩阵
+        var maxCount = 10; //最大地雷数量
+        var isFirstOpen = true; //第一次打开方格
+        function init_grid(){
+
+            let gridHtml="";//转为字符串型
+            gridHtml+="<table id='grid'>";
+            //生成矩阵
+            for(let i=0;i<row;i++){
+                gridHtml+="<tr>";//行标签
+                for(let j=0;j<col;j++){
+                    gridHtml+="<td><span class='blocks' onmousedown='block_click(" + i + "," + j + ",event)'></span></td>";//列标签
+                }
+                gridHtml+="</tr>";
+            }
+            
+            gridHtml+="</table>";
+            //打印Html
+            document.write(gridHtml);
+
+            
+            //返回矩阵二维数组
+            let blocks = document.getElementsByClassName('blocks');//计算格子数
+            let grid = new Array();
+            for (let i = 0; i < blocks.length; i++) {
+                if (i % col === 0) {//10跟整数求余才得0  所以每一行开始在grid里面生成一个新的数组 组成二维数组
+                    grid.push(new Array());
+                }
+                //初始化计雷数
+                blocks[i].count= 0;//  count为自定义属性  每一个方块雷数都为0
+                grid[parseInt(i / col)].push(blocks[i]);//初始化二维数组[0,1-9] [1,10-19]....
+            }
+           
+            // for (let i = 0; i < row; i++) {
+            //     for (let j = 0; j < col; j++) {
+            //         grid[i][j].innerHTML = i + ',' + j;
+            //      }
+            // }               
+            return grid; //返回一个二维数组
+
+        }
+        //方格点击事件 _i：坐标i _j:坐标j e:鼠标事件
+        function block_click(_i, _j, event) {
+
+            //跳过已打开的方格  isOpen为自定义属性
+            if (grid[_i][_j].isOpen) {
+                return;
+            }
+
+            //鼠标左键打开方格
+            if (event.button === 0) {
+               // grid[_i][_j].innerHTML = _i + "," + _j;
+                 //第一次打开
+                if (isFirstOpen) {
+
+                    isFirstOpen = false;
+                    let count = 0; //当前地雷数
+
+                    //生成地雷
+                    while (count < maxCount) {
+
+                        //生成随机坐标 
+                        let ri = Math.floor(Math.random() * row);//Math.floor向下取舍  Math.random() 0-1之间的随机数
+                        let rj = Math.floor(Math.random() * col);
+
+                        //坐标不等于第一次点击方格的坐标 && 非雷方格
+                        if (!(ri === _i && rj === _j) && !grid[ri][rj].isMine) {
+                            grid[ri][rj].isMine = true; //自定义属性isMine代表方格为地雷
+                            count++; //当前地雷数+1
+
+                            //更新九宫格内非雷方格的计雷数  (ri,rj)地雷坐标
+                            
+                            for (let i = ri - 1; i < ri + 2; i++) {
+                                for (let j = rj - 1; j < rj + 2; j++) {
+                                    //判断坐标防越界
+                                    if (i > -1 && j > -1 && i < row && j < col) {
+                                        //计雷数+1
+                                        grid[i][j].count++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // //测试地雷是否正常
+                // for (let i = 0; i < row; i++) {
+                //     for (let j = 0; j < col; j++) {
+                //         //判断方格是否为雷
+                //         if (grid[i][j].isMine) {
+                //             //显示为雷
+                //             grid[i][j].innerHTML = '雷';
+                //         } else {
+                //             //否则显示计雷数
+                //             grid[i][j].innerHTML = grid[i][j].count;
+                //         }
+                //     }
+                // }
+            
+                //执行打开方格函数
+                block_open(_i, _j);
+                //打开方格函数
+                function block_open(_i, _j) {
+
+                    let block = grid[_i][_j];
+                    op(block);
+
+                    //设定打开方格的状态与样式
+                    function op(block) {
+                        block.isOpen = true; //isOpen为自定义属性，设置为true代表已打开
+                        block.style.background = '#FFFF00'; //将背景设置为灰色
+                        block.style.cursor = 'default'; //将鼠标停留样式设置为默认
+                    }
+
+                    if (block.isMine) {
+                        //踩雷
+                        block.innerHTML = '雷'; //显示为 '雷'
+                        //遍历矩阵打开所有的地雷方格
+                        for (let i = 0; i < row; i++) {
+                            for (let j = 0; j < col; j++) {
+                                //找到地雷
+                                block = grid[i][j];
+                                if (!block.isOpen && block.isMine) {
+                                    op(block); //设置打开状态和样式
+                                    block.innerHTML = '雷'; //显示为 '雷'
+                                }
+                            }
+                        }
+                        //提示游戏结束
+                        alert("游戏结束");
+                    } else if (block.count === 0) {
+                        //打开计雷数为0的方格
+                        //遍历九宫格内的方格
+                        for (let i = _i - 1; i < _i + 2; i++) {
+                            for (let j = _j - 1; j < _j + 2; j++) {
+                                //判断是否越界&&跳过已打开的方格&&非雷
+                                if (i > -1 && j > -1 && i < row && j < col && !grid[i][j].isOpen && !grid[i][j].ismine) {
+                                    //递归打开方格函数
+                                    block_open(i, j);
+                                }
+                            }
+                        }
+                    } else {
+                        //打开计雷数不为0的方格
+                        block.innerHTML = block.count;  //显示计雷数
+                    }
+                }
+            
+            
+            }
+            //鼠标右键标记方格
+            else if (event.button === 2) {
+                //在鼠标右键事件写标记代码，这里用 ▲ 来作为标记。右击一次添加标记，再次右击删除标记。  双击
+                let block = grid[_i][_j];
+                if (block.innerHTML !== "▲") {
+                    block.innerHTML = "▲";
+                } else {
+                    block.innerHTML = "";
+                }
+            }
+            
+            //遍历矩阵
+            let isWin = true;
+            for (let i = 0; i < row; i++) {
+                for (let j = 0; j < col; j++) {
+        　　　　　　　let block = grid[i][j];
+
+                    //判断游戏胜利条件(所有的非雷方格已打开)
+                    if (!block.isMine && !block.isOpen) {
+                        //如果有未打开的非雷方块 条件不成立
+                        isWin = false;
+                    }
+                }
+            }
+            if (isWin) {
+                alert("游戏胜利");
+            }
+        }
+         
+
+
+    </script>
+
+    <style>
+    #grid {
+        margin: auto;  /* 让矩阵居中显示于页面 */
+    }
+
+    .blocks {
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        display: block;   /* 让span以block方式显示 */
+        text-align: center;
+        border: solid 1px #000;
+        user-select: none;  /* 设置不可拖拽选中 */
+        cursor: pointer;  /* 设置鼠标停留样式 */
+    }
+
+    .blocks:hover {
+        background: #0af;  /* 鼠标停留时背景颜色变化 */
+    }
+    </style>
+</head>
+<body ondragstart='return false' oncontextmenu='self.event.returnValue=false'>
+    
+
+</body>
+</html>
